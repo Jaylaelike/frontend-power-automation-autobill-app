@@ -10,6 +10,7 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -65,6 +66,12 @@ export function PowerReadingsTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [showDetailedView, setShowDetailedView] = useState(true);
+  const router = useRouter();
+
+  // Handle station row click
+  const handleStationClick = (stationId: string) => {
+    router.push(`/station/${stationId}`);
+  };
 
   const baseColumns: ColumnDef<Station>[] = [
     {
@@ -579,7 +586,8 @@ export function PowerReadingsTable({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className="border-border/50 transition-colors hover:bg-muted/30"
+                  className="border-border/50 transition-colors hover:bg-muted/30 cursor-pointer"
+                  onClick={() => handleStationClick(row.original.id)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="whitespace-nowrap">

@@ -9,10 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Zap, RefreshCw } from "lucide-react";
+import { Activity, Zap, RefreshCw, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { PowerReadingsTable } from "./power-readings-table";
 import { StatsCards } from "./stats-cards";
-import { ThemeToggle } from "./theme-toggle";
+import { PageLayout } from "./page-layout";
+
 
 export function MeterReadingDashboard() {
   const { data, isLoading, error, dataUpdatedAt } = useQuery({
@@ -29,7 +32,7 @@ export function MeterReadingDashboard() {
   const lastUpdate = new Date(dataUpdatedAt).toLocaleTimeString();
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 lg:p-12">
+    <PageLayout>
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
@@ -58,7 +61,6 @@ export function MeterReadingDashboard() {
             <RefreshCw className="h-4 w-4" />
             <span>Last update: {lastUpdate}</span>
           </div>
-          <ThemeToggle />
         </div>
       </div>
 
@@ -78,6 +80,6 @@ export function MeterReadingDashboard() {
           <PowerReadingsTable data={data} isLoading={isLoading} error={error} />
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   );
 }
