@@ -188,14 +188,14 @@ export async function POST(request: Request) {
     // Try multiple SMTP configurations
     const smtpConfigs = [
       {
-        configName: "Thai PBS SMTP (Port 587) - Optimized",
-        host: "webmail.thaipbs.or.th",
+        configName: "Optimized",
+        host: "xxxxxxxxx",
         port: 587,
         secure: false,
-        name: "thaipbs.or.th", // Specify hostname for HELO command
+        name: "xxxxxxx", // Specify hostname for HELO command
         auth: {
-          user: "RRS@thaipbs.or.th",
-          pass: "rR$%^&2025",
+          user: "xxxx",
+          pass: "xxxxx",
         },
         tls: {
           rejectUnauthorized: false,
@@ -208,14 +208,14 @@ export async function POST(request: Request) {
         maxMessages: 3,            // Max messages per connection
       },
       {
-        configName: "Thai PBS SMTP (Port 587) - Fallback",
-        host: "webmail.thaipbs.or.th",
+        configName: "Fallback",
+        host: "xxxxxxxx",
         port: 587,
         secure: false,
-        name: "thaipbs.or.th",
+        name: "xxxxxxx",
         auth: {
-          user: "RRS@thaipbs.or.th",
-          pass: "rR$%^&2025",
+          user: "xxxxxxx",
+          pass: "xxxxxxx",
         },
         tls: {
           rejectUnauthorized: false,
