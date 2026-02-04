@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ stationName: string }> }
 ) {
   try {
@@ -13,7 +13,7 @@ export async function GET(
     console.log('Looking for station:', stationName);
     
     // Try exact match first, then contains
-    let station = await prisma.station.findFirst({
+    let station: any = await (prisma.station as any).findFirst({
       where: {
         name: stationName
       },
@@ -24,12 +24,13 @@ export async function GET(
           },
           take: 1,
         },
+        modbusConfig: true,
       },
     });
 
     // If exact match fails, try contains
     if (!station) {
-      station = await prisma.station.findFirst({
+      station = await (prisma.station as any).findFirst({
         where: {
           name: {
             contains: stationName
@@ -42,6 +43,7 @@ export async function GET(
             },
             take: 1,
           },
+          modbusConfig: true,
         },
       });
     }
@@ -82,6 +84,13 @@ export async function GET(
       muxPower5: latestReading.muxPower5 || 0,
       muxPower6: latestReading.muxPower6 || 0,
       totalMuxPower: totalMuxPower,
+      // Modbus channel labels
+      modbusLabel1: station.modbusConfig?.modbus1 || null,
+      modbusLabel2: station.modbusConfig?.modbus2 || null,
+      modbusLabel3: station.modbusConfig?.modbus3 || null,
+      modbusLabel4: station.modbusConfig?.modbus4 || null,
+      modbusLabel5: station.modbusConfig?.modbus5 || null,
+      modbusLabel6: station.modbusConfig?.modbus6 || null,
       // Additional details
       stationId: station.id,
       ipAddress: station.ipAddress,

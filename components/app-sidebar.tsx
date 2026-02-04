@@ -105,7 +105,7 @@ const systemNavigation = [
     href: "/settings",
     icon: Settings,
     description: "System configuration",
-    disabled: true
+    disabled: false
   }
 ];
 

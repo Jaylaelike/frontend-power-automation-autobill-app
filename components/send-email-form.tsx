@@ -339,6 +339,13 @@ export function SendEmailForm({ powerReadings }: SendEmailFormProps) {
         muxPower5: stationData.muxPower5,
         muxPower6: stationData.muxPower6,
         totalMuxPower: stationData.totalMuxPower,
+        // Modbus channel labels
+        modbusLabel1: stationData.modbusLabel1,
+        modbusLabel2: stationData.modbusLabel2,
+        modbusLabel3: stationData.modbusLabel3,
+        modbusLabel4: stationData.modbusLabel4,
+        modbusLabel5: stationData.modbusLabel5,
+        modbusLabel6: stationData.modbusLabel6,
         userTo: selectedUsers,
         cc: ccUsers,
         pdfAttachment: pdfBase64
@@ -470,22 +477,22 @@ export function SendEmailForm({ powerReadings }: SendEmailFormProps) {
                       <span className="font-medium">Total Power:</span> {latestStationData.totalMuxPower.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 1:</span> {latestStationData.muxPower1.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel1 ? `MUX 1 - ${latestStationData.modbusLabel1}` : 'MUX 1'}:</span> {latestStationData.muxPower1.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 2:</span> {latestStationData.muxPower2.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel2 ? `MUX 2 - ${latestStationData.modbusLabel2}` : 'MUX 2'}:</span> {latestStationData.muxPower2.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 3:</span> {latestStationData.muxPower3.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel3 ? `MUX 3 - ${latestStationData.modbusLabel3}` : 'MUX 3'}:</span> {latestStationData.muxPower3.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 4:</span> {latestStationData.muxPower4.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel4 ? `MUX 4 - ${latestStationData.modbusLabel4}` : 'MUX 4'}:</span> {latestStationData.muxPower4.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 5:</span> {latestStationData.muxPower5.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel5 ? `MUX 5 - ${latestStationData.modbusLabel5}` : 'MUX 5'}:</span> {latestStationData.muxPower5.toFixed(2)} kWh
                     </div>
                     <div>
-                      <span className="font-medium">MUX 6:</span> {latestStationData.muxPower6.toFixed(2)} kWh
+                      <span className="font-medium">{latestStationData.modbusLabel6 ? `MUX 6 - ${latestStationData.modbusLabel6}` : 'MUX 6'}:</span> {latestStationData.muxPower6.toFixed(2)} kWh
                     </div>
                   </div>
                 </div>

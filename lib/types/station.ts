@@ -4,6 +4,15 @@ export type TimePeriod = 'day' | 'week' | 'month' | 'year';
 
 export type StationStatus = 'active' | 'stale' | 'offline';
 
+export interface ModbusConfig {
+  modbus1: string | null;
+  modbus2: string | null;
+  modbus3: string | null;
+  modbus4: string | null;
+  modbus5: string | null;
+  modbus6: string | null;
+}
+
 export interface PowerReading {
   id: string;
   stationId: string;
@@ -20,6 +29,8 @@ export interface PowerReading {
   muxPower4: number | null;
   muxPower5: number | null;
   muxPower6: number | null;
+  totalActivePower: number | null;
+  totalMuxPower: number | null;
 }
 
 export interface StationInfo {
@@ -29,6 +40,7 @@ export interface StationInfo {
   scene: string | null;
   status: StationStatus;
   latestReading: PowerReading | null;
+  modbusConfig: ModbusConfig | null;
 }
 
 export interface DateRange {
@@ -80,7 +92,7 @@ export interface HistoricalDataResponse {
   data: AggregatedDataPoint[];
   metadata: {
     totalReadings: number;
-    aggregationMethod: 'sum' | 'average';
+    aggregationMethod: 'sum' | 'average' | 'latest';
   };
 }
 

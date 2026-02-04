@@ -22,6 +22,8 @@ export function filterByTimeWindow(
     muxPower4: number | null;
     muxPower5: number | null;
     muxPower6: number | null;
+    totalActivePower?: number | null;
+    totalMuxPower?: number | null;
   }>,
   windowMinutes: number,
   referenceTime: Date = new Date()
@@ -31,21 +33,24 @@ export function filterByTimeWindow(
   return readings
     .filter((r) => r.timestamp >= windowStart && r.timestamp <= referenceTime)
     .map((reading) => {
-      const totalActivePower =
-        (reading.activePower1 || 0) +
-        (reading.activePower2 || 0) +
-        (reading.activePower3 || 0) +
-        (reading.activePower4 || 0) +
-        (reading.activePower5 || 0) +
-        (reading.activePower6 || 0);
+      // Use pre-calculated totals from database if available
+      const totalActivePower = (reading.totalActivePower !== null && reading.totalActivePower !== undefined)
+        ? reading.totalActivePower
+        : (reading.activePower1 || 0) +
+          (reading.activePower2 || 0) +
+          (reading.activePower3 || 0) +
+          (reading.activePower4 || 0) +
+          (reading.activePower5 || 0) +
+          (reading.activePower6 || 0);
 
-      const totalMuxPower =
-        (reading.muxPower1 || 0) +
-        (reading.muxPower2 || 0) +
-        (reading.muxPower3 || 0) +
-        (reading.muxPower4 || 0) +
-        (reading.muxPower5 || 0) +
-        (reading.muxPower6 || 0);
+      const totalMuxPower = (reading.totalMuxPower !== null && reading.totalMuxPower !== undefined)
+        ? reading.totalMuxPower
+        : (reading.muxPower1 || 0) +
+          (reading.muxPower2 || 0) +
+          (reading.muxPower3 || 0) +
+          (reading.muxPower4 || 0) +
+          (reading.muxPower5 || 0) +
+          (reading.muxPower6 || 0);
 
       return {
         timestamp: reading.timestamp.toISOString(),

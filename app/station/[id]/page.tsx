@@ -11,11 +11,15 @@ import { PowerSummaryCards } from "@/components/power-summary-cards";
 import { MuxPowerBreakdown } from "@/components/mux-power-breakdown";
 import { ActivePowerBreakdown } from "@/components/active-power-breakdown";
 import { PageLayout } from "@/components/page-layout";
+import { StationReportActions } from "@/components/station-report-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Download } from "lucide-react";
 import { subDays } from "date-fns";
+import { exportStationDataToCSV } from "@/lib/station-csv-export";
+import { useToast } from "@/hooks/use-toast";
 import type { 
   StationDetailResponse, 
   HistoricalDataResponse, 
@@ -27,6 +31,7 @@ import type {
 export default function StationDetailPage() {
   const params = useParams();
   const stationId = params.id as string;
+  const { toast } = useToast();
 
   // State for date range and time period
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -94,6 +99,38 @@ export default function StationDetailPage() {
     setTimePeriod(newPeriod);
   };
 
+  // Handle CSV export
+  const handleExportCSV = () => {
+    if (!stationData || !historicalData || historicalData.data.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "No data available to export",
+      });
+      return;
+    }
+
+    try {
+      exportStationDataToCSV({
+        station: stationData.station,
+        data: historicalData.data,
+        dateRange,
+        timePeriod,
+      });
+      toast({
+        title: "Export Successful",
+        description: "Data has been exported to CSV file",
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to export data. Please try again.",
+      });
+    }
+  };
+
   if (stationLoading) {
     return (
       <PageLayout>
@@ -149,13 +186,30 @@ export default function StationDetailPage() {
         {/* Station Header */}
         <StationHeader station={stationData.station} isLoading={false} />
 
+        {/* Report & Email Actions */}
+        <StationReportActions station={stationData.station} />
+
         {/* Date Controls */}
         <Card>
           <CardHeader>
-            <CardTitle>Data Controls</CardTitle>
-            <CardDescription>
-              Select date range and time period for historical data analysis
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Data Controls</CardTitle>
+                <CardDescription>
+                  Select date range and time period for historical data analysis
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleExportCSV}
+                disabled={historicalLoading || !historicalData || historicalData.data.length === 0}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -187,6 +241,7 @@ export default function StationDetailPage() {
             data={historicalData?.data || []}
             dateRange={dateRange}
             timePeriod={timePeriod}
+            station={stationData.station}
             isLoading={historicalLoading}
             error={historicalError?.message || null}
           />
@@ -194,6 +249,8 @@ export default function StationDetailPage() {
           {/* Active Power Breakdown */}
           <ActivePowerBreakdown
             stationId={stationId}
+            stationName={stationData.station.name}
+            modbusConfig={stationData.station.modbusConfig}
             isLoading={false}
             error={null}
           />
@@ -201,6 +258,9 @@ export default function StationDetailPage() {
           {/* MUX Power Breakdown */}
           <MuxPowerBreakdown
             data={realtimeData?.readings || []}
+            stationName={stationData.station.name}
+            stationId={stationId}
+            modbusConfig={stationData.station.modbusConfig}
             isLoading={realtimeLoading}
             error={realtimeError?.message || null}
           />

@@ -22,6 +22,7 @@ model Station {
   // Relationship to power readings and monitored objects
   powerReadings PowerReading[]
   monitoredObjects StationMonitoredObject[]
+  modbusConfig StationModbus?
   
   @@map("stations")
 }
@@ -69,6 +70,10 @@ model PowerReading {
   muxPower5     Float?  // Additional MUX
   muxPower6     Float?  // Additional MUX
   
+  // Total Power columns (computed sums)
+  totalActivePower  Float?  // Sum of activePower1-6 (Watts)
+  totalMuxPower     Float?  // Sum of muxPower1-6 (kWh)
+  
   createdAt   DateTime @default(now())
   
   // Relationships
@@ -88,6 +93,29 @@ model DataSource {
   createdAt   DateTime @default(now())
   
   @@map("data_sources")
+}
+
+// Station Modbus configuration - maps MUX channels to broadcaster names
+model StationModbus {
+  id          String   @id @default(cuid())
+  stationId   String   @unique
+  
+  // Modbus channel mappings (broadcaster names)
+  modbus1     String?  // e.g., "TV5"
+  modbus2     String?  // e.g., "MCOT"
+  modbus3     String?  // e.g., "PRD"
+  modbus4     String?  // e.g., "TPBS"
+  modbus5     String?  // e.g., "NT", "LOOKTOONG", etc.
+  modbus6     String?  // e.g., "RADIO", "DINDIN", etc.
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationship
+  station     Station  @relation(fields: [stationId], references: [id])
+  
+  @@index([stationId])
+  @@map("station_modbus")
 }
 
 // Users model for email functionality

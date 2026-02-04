@@ -12,6 +12,21 @@ export interface PowerReading {
   muxPower5: number;
   muxPower6: number;
   totalMuxPower: number;
+  // Modbus channel labels (optional)
+  modbusLabel1?: string | null;
+  modbusLabel2?: string | null;
+  modbusLabel3?: string | null;
+  modbusLabel4?: string | null;
+  modbusLabel5?: string | null;
+  modbusLabel6?: string | null;
+}
+
+// Helper function to get modbus label with fallback
+function getModbusLabel(index: number, modbusLabel?: string | null): string {
+  if (modbusLabel && modbusLabel.trim()) {
+    return `MUX ${index} - ${modbusLabel}`;
+  }
+  return `MUX Power ${index}`;
 }
 
 export async function generatePowerReadingsPDF(data: PowerReading[], title: string = 'รายงานค่าพลังงานไฟฟ้า'): Promise<Uint8Array> {
@@ -120,14 +135,14 @@ export async function generateStationPDF(stationData: PowerReading, title?: stri
   doc.text(`สถานี: ${stationData.stationName}`, 14, 50);
   doc.text(`อัปเดตล่าสุด: ${new Date(stationData.lastUpdate).toLocaleString('th-TH')}`, 14, 60);
   
-  // Power readings table
+  // Power readings table with modbus labels
   const tableData = [
-    ['MUX Power 1', `${stationData.muxPower1.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
-    ['MUX Power 2', `${stationData.muxPower2.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
-    ['MUX Power 3', `${stationData.muxPower3.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
-    ['MUX Power 4', `${stationData.muxPower4.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
-    ['MUX Power 5', `${stationData.muxPower5.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
-    ['MUX Power 6', `${stationData.muxPower6.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(1, stationData.modbusLabel1), `${stationData.muxPower1.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(2, stationData.modbusLabel2), `${stationData.muxPower2.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(3, stationData.modbusLabel3), `${stationData.muxPower3.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(4, stationData.modbusLabel4), `${stationData.muxPower4.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(5, stationData.modbusLabel5), `${stationData.muxPower5.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
+    [getModbusLabel(6, stationData.modbusLabel6), `${stationData.muxPower6.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`],
     ['รวม MUX Power', `${stationData.totalMuxPower.toLocaleString('th-TH', { minimumFractionDigits: 2 })} kWh`]
   ];
   

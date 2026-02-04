@@ -3,7 +3,10 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { AggregatedDataPoint, DateRange, TimePeriod } from "@/lib/types/station";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportHistoricalDataToCSV } from "@/lib/station-csv-export";
+import type { AggregatedDataPoint, DateRange, TimePeriod, StationInfo } from "@/lib/types/station";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -12,6 +15,7 @@ interface HistoricalBarChartProps {
   data: AggregatedDataPoint[];
   dateRange: DateRange;
   timePeriod: TimePeriod;
+  station?: StationInfo;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -20,6 +24,7 @@ export function HistoricalBarChart({
   data,
   dateRange,
   timePeriod,
+  station,
   isLoading = false,
   error = null,
 }: HistoricalBarChartProps) {
@@ -39,9 +44,21 @@ export function HistoricalBarChart({
     return `${fromStr} - ${toStr}`;
   };
 
-  // Prepare data for ApexCharts
+  const handleExportCSV = () => {
+    if (!station || data.length === 0) return;
+    
+    exportHistoricalDataToCSV({
+      station,
+      data,
+      dateRange,
+      timePeriod,
+    });
+  };
+
+  // Prepare data for ApexCharts - using actual values from database (not summed)
   const chartData = React.useMemo(() => {
     const categories = data.map(item => item.label);
+    // activePowerSum and muxPowerSum now contain actual values from database, not aggregated sums
     const activePowerData = data.map(item => Math.round(item.activePowerSum));
     const muxPowerData = data.map(item => Math.round(item.muxPowerSum));
 
@@ -49,12 +66,12 @@ export function HistoricalBarChart({
       categories,
       series: [
         {
-          name: 'Active Power (W)',
+          name: 'Total Active Power (W)',
           data: activePowerData,
           color: '#3b82f6', // Blue
         },
         {
-          name: 'MUX Power (W)',
+          name: 'Total MUX Power (kWh)',
           data: muxPowerData,
           color: '#10b981', // Green
         }
@@ -194,10 +211,25 @@ export function HistoricalBarChart({
   return (
     <Card className="shadow-sm border-0 bg-linear-to-br from-background to-muted/20">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold">{formatPeriodLabel(timePeriod)} Power Data</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
-          Aggregated power readings for {formatDateRange()}
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold">{formatPeriodLabel(timePeriod)} Power Data</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Power readings for {formatDateRange()} (latest value per interval)
+            </CardDescription>
+          </div>
+          {station && data.length > 0 && (
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="w-full h-[400px]">

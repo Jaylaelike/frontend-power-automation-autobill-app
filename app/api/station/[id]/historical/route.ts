@@ -94,8 +94,8 @@ function getLabelFormat(period: TimePeriod): string {
   }
 }
 
-// Aggregate readings for a time interval
-export function aggregateReadings(
+// Get the latest reading for a time interval (no summing - use actual values)
+export function getLatestReadingForInterval(
   readings: Array<{
     timestamp: Date;
     activePower1: number | null;
@@ -110,6 +110,8 @@ export function aggregateReadings(
     muxPower4: number | null;
     muxPower5: number | null;
     muxPower6: number | null;
+    totalActivePower?: number | null;
+    totalMuxPower?: number | null;
   }>,
   intervalStart: Date,
   intervalEnd: Date,
@@ -131,37 +133,48 @@ export function aggregateReadings(
     };
   }
 
-  let activePowerSum = 0;
-  let muxPowerSum = 0;
+  // Get the latest reading in this interval (most recent data point)
+  const latestReading = intervalReadings[intervalReadings.length - 1];
 
-  for (const reading of intervalReadings) {
-    const activePower =
-      (reading.activePower1 || 0) +
-      (reading.activePower2 || 0) +
-      (reading.activePower3 || 0) +
-      (reading.activePower4 || 0) +
-      (reading.activePower5 || 0) +
-      (reading.activePower6 || 0);
+  // Use totalActivePower and totalMuxPower from database directly (no summing)
+  let activePowerValue = 0;
+  let muxPowerValue = 0;
 
-    const muxPower =
-      (reading.muxPower1 || 0) +
-      (reading.muxPower2 || 0) +
-      (reading.muxPower3 || 0) +
-      (reading.muxPower4 || 0) +
-      (reading.muxPower5 || 0) +
-      (reading.muxPower6 || 0);
+  // Use pre-calculated totals from database if available
+  if (latestReading.totalActivePower !== null && latestReading.totalActivePower !== undefined) {
+    activePowerValue = latestReading.totalActivePower;
+  } else {
+    // Fallback to calculating from individual values for this single reading
+    activePowerValue =
+      (latestReading.activePower1 || 0) +
+      (latestReading.activePower2 || 0) +
+      (latestReading.activePower3 || 0) +
+      (latestReading.activePower4 || 0) +
+      (latestReading.activePower5 || 0) +
+      (latestReading.activePower6 || 0);
+  }
 
-    activePowerSum += activePower;
-    muxPowerSum += muxPower;
+  // Use pre-calculated totals from database if available
+  if (latestReading.totalMuxPower !== null && latestReading.totalMuxPower !== undefined) {
+    muxPowerValue = latestReading.totalMuxPower;
+  } else {
+    // Fallback to calculating from individual values for this single reading
+    muxPowerValue =
+      (latestReading.muxPower1 || 0) +
+      (latestReading.muxPower2 || 0) +
+      (latestReading.muxPower3 || 0) +
+      (latestReading.muxPower4 || 0) +
+      (latestReading.muxPower5 || 0) +
+      (latestReading.muxPower6 || 0);
   }
 
   return {
     label,
-    timestamp: intervalStart.toISOString(),
-    activePowerSum,
-    activePowerAvg: activePowerSum / intervalReadings.length,
-    muxPowerSum,
-    muxPowerAvg: muxPowerSum / intervalReadings.length,
+    timestamp: latestReading.timestamp.toISOString(),
+    activePowerSum: activePowerValue, // This is now the actual value, not a sum
+    activePowerAvg: activePowerValue,
+    muxPowerSum: muxPowerValue, // This is now the actual value, not a sum
+    muxPowerAvg: muxPowerValue,
     readingCount: intervalReadings.length,
   };
 }
@@ -224,7 +237,7 @@ export async function GET(
       const label = format(intervalStart, labelFormat);
 
       aggregatedData.push(
-        aggregateReadings(readings, intervalStart, intervalEnd, label)
+        getLatestReadingForInterval(readings, intervalStart, intervalEnd, label)
       );
     }
 
@@ -238,7 +251,7 @@ export async function GET(
       data: aggregatedData,
       metadata: {
         totalReadings: readings.length,
-        aggregationMethod: "sum",
+        aggregationMethod: "latest", // Changed from "sum" to "latest"
       },
     };
 

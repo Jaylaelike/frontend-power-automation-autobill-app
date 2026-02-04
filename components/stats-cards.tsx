@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Activity, Zap, TrendingUp, Database } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import CountUp from "@/components/ui/count-up"
 
 interface StatsCardsProps {
   data: any
@@ -36,6 +37,9 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
   const totalActivePower = stations.reduce((sum: number, station: any) => {
     if (!station.latestReading) return sum
     const reading = station.latestReading
+    if (reading.totalActivePower !== null && reading.totalActivePower !== undefined) {
+      return sum + reading.totalActivePower
+    }
     return (
       sum +
       (reading.activePower1 || 0) +
@@ -50,6 +54,9 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
   const totalMuxPower = stations.reduce((sum: number, station: any) => {
     if (!station.latestReading) return sum
     const reading = station.latestReading
+    if (reading.totalMuxPower !== null && reading.totalMuxPower !== undefined) {
+      return sum + reading.totalMuxPower
+    }
     return (
       sum +
       (reading.muxPower1 || 0) +
@@ -61,51 +68,67 @@ export function StatsCards({ data, isLoading }: StatsCardsProps) {
     )
   }, 0)
 
-  const stats = [
-    {
-      title: "Total Stations",
-      value: totalStations,
-      description: `${activeStations} active stations`,
-      icon: Database,
-      color: "text-chart-1",
-    },
-    {
-      title: "Active Stations",
-      value: activeStations,
-      description: "Currently reporting",
-      icon: Activity,
-      color: "text-chart-3",
-    },
-    {
-      title: "Total Active Power",
-      value: `${(totalActivePower / 1000).toFixed(2)} kW`,
-      description: "Combined active power",
-      icon: Zap,
-      color: "text-chart-2",
-    },
-    {
-      title: "Total MUX Power",
-      value: `${totalMuxPower.toFixed(2)} kWh`,
-      description: "Combined MUX readings",
-      icon: TrendingUp,
-      color: "text-chart-4",
-    },
-  ]
+  const activePowerKW = totalActivePower / 1000
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
-        <Card key={stat.title} className="border-border/50 bg-card/50 backdrop-blur transition-all hover:bg-card/80">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-            <stat.icon className={`h-4 w-4 ${stat.color}`} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-xs text-muted-foreground">{stat.description}</p>
-          </CardContent>
-        </Card>
-      ))}
+      {/* Total Stations */}
+      <Card className="border-border/50 bg-card/50 backdrop-blur transition-all hover:bg-card/80">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total Stations</CardTitle>
+          <Database className="h-4 w-4 text-chart-1" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            <CountUp from={0} to={totalStations} duration={1} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            <CountUp from={0} to={activeStations} duration={1} /> active stations
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Active Stations */}
+      <Card className="border-border/50 bg-card/50 backdrop-blur transition-all hover:bg-card/80">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Active Stations</CardTitle>
+          <Activity className="h-4 w-4 text-chart-3" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            <CountUp from={0} to={activeStations} duration={1} />
+          </div>
+          <p className="text-xs text-muted-foreground">Currently reporting</p>
+        </CardContent>
+      </Card>
+
+      {/* Total Active Power */}
+      <Card className="border-border/50 bg-card/50 backdrop-blur transition-all hover:bg-card/80">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total Active Power</CardTitle>
+          <Zap className="h-4 w-4 text-chart-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            <CountUp from={0} to={activePowerKW} duration={1.2} /> kW
+          </div>
+          <p className="text-xs text-muted-foreground">Combined active power</p>
+        </CardContent>
+      </Card>
+
+      {/* Total MUX Power */}
+      <Card className="border-border/50 bg-card/50 backdrop-blur transition-all hover:bg-card/80">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total MUX Power</CardTitle>
+          <TrendingUp className="h-4 w-4 text-chart-4" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            <CountUp from={0} to={totalMuxPower} duration={1.2} /> kWh
+          </div>
+          <p className="text-xs text-muted-foreground">Combined MUX readings</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

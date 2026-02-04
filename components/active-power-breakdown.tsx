@@ -3,8 +3,11 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
+import { ArrowUp, ArrowDown, TrendingUp, Download } from "lucide-react";
+import { exportActivePowerBreakdownToCSV } from "@/lib/station-csv-export";
+import type { ModbusConfig } from "@/lib/types/station";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -24,6 +27,8 @@ interface ActivePowerChannelAnalytics {
 
 interface ActivePowerBreakdownProps {
   stationId: string;
+  stationName?: string;
+  modbusConfig?: ModbusConfig | null;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -40,8 +45,23 @@ const ACTIVE_POWER_COLORS = [
 
 type TimePeriodKey = 'day' | 'week' | 'month' | 'year';
 
+// Get modbus channel name for display
+function getModbusChannelName(index: number, modbusConfig?: ModbusConfig | null): string {
+  if (!modbusConfig) return `Active Power ${index}`;
+  
+  const modbusKey = `modbus${index}` as keyof ModbusConfig;
+  const channelName = modbusConfig[modbusKey];
+  
+  if (channelName) {
+    return `Active ${index} - ${channelName}`;
+  }
+  return `Active Power ${index}`;
+}
+
 export function ActivePowerBreakdown({
   stationId,
+  stationName,
+  modbusConfig,
   isLoading = false,
   error = null,
 }: ActivePowerBreakdownProps) {
@@ -74,6 +94,18 @@ export function ActivePowerBreakdown({
 
     fetchAnalytics();
   }, [stationId]);
+
+  const handleExportCSV = () => {
+    if (!analytics || !stationName) return;
+    
+    exportActivePowerBreakdownToCSV({
+      stationName,
+      stationId,
+      analytics,
+      selectedPeriod,
+      modbusConfig,
+    });
+  };
 
   const formatPowerValue = (value: number) => {
     if (value >= 1000) {
@@ -236,14 +268,27 @@ export function ActivePowerBreakdown({
               Historical power data for each Active Power channel (1-6) - {getPeriodLabel(selectedPeriod)}
             </CardDescription>
           </div>
-          <Tabs value={selectedPeriod} onValueChange={(v: string) => setSelectedPeriod(v as TimePeriodKey)}>
-            <TabsList className="grid grid-cols-4 w-[280px]">
-              <TabsTrigger value="day">Day</TabsTrigger>
-              <TabsTrigger value="week">Week</TabsTrigger>
-              <TabsTrigger value="month">Month</TabsTrigger>
-              <TabsTrigger value="year">Year</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Tabs value={selectedPeriod} onValueChange={(v: string) => setSelectedPeriod(v as TimePeriodKey)}>
+              <TabsList className="grid grid-cols-4 w-[280px]">
+                <TabsTrigger value="day">Day</TabsTrigger>
+                <TabsTrigger value="week">Week</TabsTrigger>
+                <TabsTrigger value="month">Month</TabsTrigger>
+                <TabsTrigger value="year">Year</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {analytics && stationName && (
+              <Button
+                onClick={handleExportCSV}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -253,6 +298,7 @@ export function ActivePowerBreakdown({
             const periodStats = channelAnalytics?.[selectedPeriod];
             const color = ACTIVE_POWER_COLORS[channelIndex - 1];
             const chartData = periodStats?.chartData || [];
+            const channelName = getModbusChannelName(channelIndex, modbusConfig);
             
             return (
               <Card 
@@ -262,7 +308,7 @@ export function ActivePowerBreakdown({
                 <CardHeader className="pb-2 pt-4 px-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className={`text-sm font-medium ${color.text}`}>
-                      Active Power {channelIndex}
+                      {channelName}
                     </CardTitle>
                     <div className="text-right">
                       <div 
@@ -328,7 +374,7 @@ export function ActivePowerBreakdown({
                     <div className="h-[120px]">
                       <Chart
                         options={createChartOptions(color, chartData)}
-                        series={[{ name: `Active Power ${channelIndex}`, data: chartData.map(d => d.value) }]}
+                        series={[{ name: channelName, data: chartData.map(d => d.value) }]}
                         type="bar"
                         height={120}
                         width="100%"

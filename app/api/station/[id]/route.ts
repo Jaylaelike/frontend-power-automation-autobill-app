@@ -28,6 +28,7 @@ export async function GET(
           orderBy: { timestamp: "desc" },
           take: 1,
         },
+        modbusConfig: true,
       },
     });
 
@@ -65,6 +66,18 @@ export async function GET(
               muxPower4: latestReading.muxPower4,
               muxPower5: latestReading.muxPower5,
               muxPower6: latestReading.muxPower6,
+              totalActivePower: latestReading.totalActivePower,
+              totalMuxPower: latestReading.totalMuxPower,
+            }
+          : null,
+        modbusConfig: station.modbusConfig
+          ? {
+              modbus1: station.modbusConfig.modbus1,
+              modbus2: station.modbusConfig.modbus2,
+              modbus3: station.modbusConfig.modbus3,
+              modbus4: station.modbusConfig.modbus4,
+              modbus5: station.modbusConfig.modbus5,
+              modbus6: station.modbusConfig.modbus6,
             }
           : null,
       },

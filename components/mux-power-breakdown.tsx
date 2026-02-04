@@ -1,18 +1,31 @@
 "use client";
 
 import * as React from "react";
-import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { RealtimeDataPoint } from "@/lib/types/station";
-
-// Dynamically import ApexCharts to avoid SSR issues
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowUp, ArrowDown, TrendingUp, Download } from "lucide-react";
+import { exportMuxPowerBreakdownToCSV } from "@/lib/station-csv-export";
+import type { RealtimeDataPoint, ModbusConfig } from "@/lib/types/station";
 
 interface MuxPowerBreakdownProps {
   data: RealtimeDataPoint[];
+  stationName?: string;
+  stationId?: string;
+  modbusConfig?: ModbusConfig | null;
   isLoading?: boolean;
   error?: string | null;
 }
+
+interface MuxChannelAnalytics {
+  channel: number;
+  day: { min: number; max: number; avg: number; count: number };
+  week: { min: number; max: number; avg: number; count: number };
+  month: { min: number; max: number; avg: number; count: number };
+  year: { min: number; max: number; avg: number; count: number };
+}
+
+type TimePeriodKey = 'day' | 'week' | 'month' | 'year';
 
 // Color palette for each MUX channel
 const MUX_COLORS = [
@@ -24,11 +37,57 @@ const MUX_COLORS = [
   { primary: '#ec4899', gradient: '#f472b6', bg: 'from-pink-50 to-pink-100 dark:from-pink-950 dark:to-pink-900', text: 'text-pink-700 dark:text-pink-300' },
 ];
 
+// Get modbus channel name for display
+function getModbusChannelName(index: number, modbusConfig?: ModbusConfig | null): string {
+  if (!modbusConfig) return `MUX Power ${index}`;
+  
+  const modbusKey = `modbus${index}` as keyof ModbusConfig;
+  const channelName = modbusConfig[modbusKey];
+  
+  if (channelName) {
+    return `MUX ${index} - ${channelName}`;
+  }
+  return `MUX Power ${index}`;
+}
+
 export function MuxPowerBreakdown({
   data,
+  stationName,
+  stationId,
+  modbusConfig,
   isLoading = false,
   error = null,
 }: MuxPowerBreakdownProps) {
+  const [analytics, setAnalytics] = React.useState<MuxChannelAnalytics[] | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = React.useState(true);
+  const [analyticsError, setAnalyticsError] = React.useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = React.useState<TimePeriodKey>('day');
+
+  // Fetch analytics data
+  React.useEffect(() => {
+    async function fetchAnalytics() {
+      if (!stationId) return;
+      
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+      
+      try {
+        const response = await fetch(`/api/station/${stationId}/mux-analytics`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics');
+        }
+        const data = await response.json();
+        setAnalytics(data.channels);
+      } catch (err) {
+        setAnalyticsError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    }
+
+    fetchAnalytics();
+  }, [stationId]);
+
   // Format timestamp for display
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
@@ -38,35 +97,30 @@ export function MuxPowerBreakdown({
     });
   };
 
-  // Prepare data for each MUX channel
-  const muxChannelData = React.useMemo(() => {
-    const channels = [];
+  const handleExportCSV = () => {
+    if (!stationName || !stationId || data.length === 0) return;
     
-    for (let i = 1; i <= 6; i++) {
-      const channelKey = `muxPower${i}` as keyof RealtimeDataPoint;
-      const timestamps = data.map(point => formatTime(point.timestamp));
-      const values = data.map(point => {
-        const val = point[channelKey] as number | null;
-        return val !== null ? Math.round(val) : 0;
-      });
-      
-      // Calculate stats from realtime data
-      const validValues = values.filter(v => v !== 0);
-      const latestValue = values[values.length - 1] || 0;
-      
-      channels.push({
-        index: i,
-        name: `MUX Power ${i}`,
-        timestamps,
-        values,
-        latestValue,
-        hasData: validValues.length > 0,
-        color: MUX_COLORS[i - 1],
-      });
+    exportMuxPowerBreakdownToCSV({
+      stationName,
+      stationId,
+      data,
+      modbusConfig,
+    });
+  };
+
+  const getPeriodLabel = (period: TimePeriodKey) => {
+    switch (period) {
+      case 'day': return 'Last 24 Hours';
+      case 'week': return 'Last 7 Days';
+      case 'month': return 'Last 30 Days';
+      case 'year': return 'Last 12 Months';
     }
-    
-    return channels;
-  }, [data]);
+  };
+
+  const getAnalyticsForChannel = (channelIndex: number) => {
+    if (!analytics) return null;
+    return analytics.find(a => a.channel === channelIndex);
+  };
 
   const formatPowerValue = (value: number) => {
     if (value >= 1000) {
@@ -75,83 +129,7 @@ export function MuxPowerBreakdown({
     return `${value}W`;
   };
 
-  const createChartOptions = (channel: typeof muxChannelData[0]): ApexCharts.ApexOptions => ({
-    chart: {
-      type: 'bar',
-      height: 180,
-      sparkline: {
-        enabled: false,
-      },
-      toolbar: {
-        show: false,
-      },
-      background: 'transparent',
-    },
-    colors: [channel.color.primary],
-    plotOptions: {
-      bar: {
-        horizontal: false,
-        columnWidth: '70%',
-        borderRadius: 3,
-      },
-    },
-    dataLabels: {
-      enabled: false,
-    },
-    stroke: {
-      show: true,
-      width: 1,
-      colors: ['transparent']
-    },
-    xaxis: {
-      categories: channel.timestamps,
-      labels: {
-        show: false,
-      },
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
-      }
-    },
-    yaxis: {
-      labels: {
-        show: false,
-      }
-    },
-    fill: {
-      opacity: 0.9,
-      type: 'gradient',
-      gradient: {
-        shade: 'light',
-        type: 'vertical',
-        shadeIntensity: 0.3,
-        gradientToColors: [channel.color.gradient],
-        inverseColors: false,
-        opacityFrom: 0.9,
-        opacityTo: 0.6,
-        stops: [0, 100]
-      }
-    },
-    tooltip: {
-      theme: 'dark',
-      y: {
-        formatter: (val) => `${val} W`
-      }
-    },
-    grid: {
-      show: false,
-      padding: {
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-      }
-    },
-  });
-
-  if (error) {
+  if (error || analyticsError) {
     return (
       <Card className="shadow-sm border-0 bg-linear-to-br from-background to-muted/20">
         <CardHeader className="pb-4">
@@ -160,14 +138,14 @@ export function MuxPowerBreakdown({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            <p>Error: {error}</p>
+            <p>Error: {error || analyticsError}</p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (isLoading) {
+  if (isLoading || analyticsLoading) {
     return (
       <Card className="shadow-sm border-0 bg-linear-to-br from-background to-muted/20">
         <CardHeader className="pb-4">
@@ -177,7 +155,7 @@ export function MuxPowerBreakdown({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-[240px] bg-muted/30 rounded-lg animate-pulse" />
+              <div key={i} className="h-[320px] bg-muted/30 rounded-lg animate-pulse" />
             ))}
           </div>
         </CardContent>
@@ -188,56 +166,135 @@ export function MuxPowerBreakdown({
   return (
     <Card className="shadow-sm border-0 bg-linear-to-br from-background to-muted/20">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold">MUX Power Breakdown</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
-          Individual power readings for each MUX channel (1-6)
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <CardTitle className="text-lg font-semibold">MUX Power Breakdown</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Historical power data for each MUX channel (1-6) - {getPeriodLabel(selectedPeriod)}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tabs value={selectedPeriod} onValueChange={(v: string) => setSelectedPeriod(v as TimePeriodKey)}>
+              <TabsList className="grid grid-cols-4 w-[280px]">
+                <TabsTrigger value="day">Day</TabsTrigger>
+                <TabsTrigger value="week">Week</TabsTrigger>
+                <TabsTrigger value="month">Month</TabsTrigger>
+                <TabsTrigger value="year">Year</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {stationName && stationId && data.length > 0 && (
+              <Button
+                onClick={handleExportCSV}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {muxChannelData.map((channel) => (
-            <Card 
-              key={channel.index} 
-              className={`shadow-sm border-0 bg-linear-to-br ${channel.color.bg}`}
-            >
-              <CardHeader className="pb-2 pt-4 px-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className={`text-sm font-medium ${channel.color.text}`}>
-                    {channel.name}
-                  </CardTitle>
-                  <div className="text-right">
-                    <div 
-                      className="text-lg font-bold"
-                      style={{ color: channel.color.primary }}
-                    >
-                      {channel.latestValue} W
+          {[1, 2, 3, 4, 5, 6].map((channelIndex) => {
+            const channelAnalytics = getAnalyticsForChannel(channelIndex);
+            const periodStats = channelAnalytics?.[selectedPeriod];
+            const color = MUX_COLORS[channelIndex - 1];
+            const channelName = getModbusChannelName(channelIndex, modbusConfig);
+            
+            // Get latest value from realtime data
+            const channelKey = `muxPower${channelIndex}` as keyof RealtimeDataPoint;
+            const latestValue = data.length > 0 ? (data[data.length - 1][channelKey] as number | null) || 0 : 0;
+            
+            return (
+              <Card 
+                key={channelIndex} 
+                className={`shadow-sm border-0 bg-linear-to-br ${color.bg}`}
+              >
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className={`text-sm font-medium ${color.text}`}>
+                      {channelName}
+                    </CardTitle>
+                    <div className="text-right">
+                      <div 
+                        className="text-lg font-bold"
+                        style={{ color: color.primary }}
+                      >
+                        {periodStats?.avg || 0} W
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {((periodStats?.avg || 0) / 1000).toFixed(2)} kW
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {(channel.latestValue / 1000).toFixed(2)} kW
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  {/* Analytics Section */}
+                  <div className="mb-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
+                      {getPeriodLabel(selectedPeriod)} Analytics
+                    </div>
+                    {periodStats ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <ArrowDown className="h-3 w-3 text-blue-500" />
+                            <span className="text-xs text-muted-foreground">MIN</span>
+                          </div>
+                          <div className="text-sm font-semibold" style={{ color: color.primary }}>
+                            {formatPowerValue(periodStats.min)}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <TrendingUp className="h-3 w-3 text-green-500" />
+                            <span className="text-xs text-muted-foreground">AVG</span>
+                          </div>
+                          <div className="text-sm font-semibold" style={{ color: color.primary }}>
+                            {formatPowerValue(periodStats.avg)}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <ArrowUp className="h-3 w-3 text-red-500" />
+                            <span className="text-xs text-muted-foreground">MAX</span>
+                          </div>
+                          <div className="text-sm font-semibold" style={{ color: color.primary }}>
+                            {formatPowerValue(periodStats.max)}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground text-center">No data</div>
+                    )}
+                    {periodStats && periodStats.count > 0 && (
+                      <div className="text-xs text-muted-foreground text-center mt-2">
+                        Based on {periodStats.count} readings
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Latest Value Display */}
+                  <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg">
+                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                      Latest Reading
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold" style={{ color: color.primary }}>
+                        {latestValue} W
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {(latestValue / 1000).toFixed(2)} kW
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                {/* Chart Section */}
-                {channel.hasData ? (
-                  <div className="h-[180px]">
-                    <Chart
-                      options={createChartOptions(channel)}
-                      series={[{ name: channel.name, data: channel.values }]}
-                      type="bar"
-                      height={180}
-                      width="100%"
-                    />
-                  </div>
-                ) : (
-                  <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
-                    No realtime data
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
