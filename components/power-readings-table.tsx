@@ -185,8 +185,8 @@ export function PowerReadingsTable({
         const now = new Date();
         const readingTime = new Date(reading.timestamp);
         const diffMinutes = (now.getTime() - readingTime.getTime()) / 1000 / 60;
-        if (diffMinutes > 5) return <Badge variant="outline" className="border-accent/50 text-accent">Stale</Badge>;
-        return <Badge variant="outline" className="border-chart-3/50 text-chart-3">Active</Badge>;
+        if (diffMinutes > 5) return <Badge variant="outline" className="border-orange-500/50 text-orange-500">Stale</Badge>;
+        return <Badge variant="outline" className="border-green-500/50 text-green-500">Active</Badge>;
       },
     },
   ];
@@ -411,11 +411,11 @@ export function PowerReadingsTable({
               All<Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">{statusCounts.all}</Badge>
             </Button>
             <Button variant={statusFilter === "active" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("active")} className="gap-2">
-              <Badge variant="outline" className="border-chart-3/50 text-chart-3 px-2 py-0.5">Active</Badge>
+              <Badge variant="outline" className="border-green-500/50 text-green-500 px-2 py-0.5">Active</Badge>
               <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">{statusCounts.active}</Badge>
             </Button>
             <Button variant={statusFilter === "stale" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("stale")} className="gap-2">
-              <Badge variant="outline" className="border-accent/50 text-accent px-2 py-0.5">Stale</Badge>
+              <Badge variant="outline" className="border-orange-500/50 text-orange-500 px-2 py-0.5">Stale</Badge>
               <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">{statusCounts.stale}</Badge>
             </Button>
             <Button variant={statusFilter === "offline" ? "default" : "outline"} size="sm" onClick={() => setStatusFilter("offline")} className="gap-2">

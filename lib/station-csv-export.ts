@@ -250,7 +250,7 @@ export function exportActivePowerBreakdownToCSV({
   downloadCSV(csvContent, filename);
 }
 
-// Export MUX Power Breakdown Data
+// Export MUX Power Breakdown Data (Realtime)
 interface MuxPowerExportOptions {
   stationName: string;
   stationId: string;
@@ -359,4 +359,82 @@ function downloadCSV(csvContent: string, filename: string) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }
+}
+
+// Export MUX Power Breakdown Analytics Data
+interface MuxPowerAnalyticsExportOptions {
+  stationName: string;
+  stationId: string;
+  analytics: {
+    channel: number;
+    day: { min: number; max: number; avg: number; count: number };
+    week: { min: number; max: number; avg: number; count: number };
+    month: { min: number; max: number; avg: number; count: number };
+    year: { min: number; max: number; avg: number; count: number };
+  }[];
+  selectedPeriod: 'day' | 'week' | 'month' | 'year';
+  modbusConfig?: ModbusConfig | null;
+}
+
+export function exportMuxPowerAnalyticsToCSV({
+  stationName,
+  stationId,
+  analytics,
+  selectedPeriod,
+  modbusConfig,
+}: MuxPowerAnalyticsExportOptions) {
+  const periodLabels = {
+    day: 'Last 24 Hours',
+    week: 'Last 7 Days',
+    month: 'Last 30 Days',
+    year: 'Last 12 Months',
+  };
+
+  // Metadata rows
+  const metadataRows = [
+    ['Report Type', 'MUX Power Breakdown Analytics'],
+    ['Station Name', stationName],
+    ['Station ID', stationId],
+    ['Export Date', format(new Date(), 'yyyy-MM-dd HH:mm:ss')],
+    ['Time Period', periodLabels[selectedPeriod]],
+    [], // Empty row separator
+  ];
+
+  // Summary section
+  const summaryHeaders = [
+    'Channel',
+    'Channel Name',
+    'Min (W)',
+    'Max (W)',
+    'Average (W)',
+    'Reading Count',
+  ];
+
+  const summaryRows = analytics.map(channel => {
+    const stats = channel[selectedPeriod];
+    const channelName = getModbusChannelName(channel.channel, modbusConfig);
+    return [
+      `MUX ${channel.channel}`,
+      channelName,
+      stats.min.toFixed(2),
+      stats.max.toFixed(2),
+      stats.avg.toFixed(2),
+      stats.count.toString(),
+    ];
+  });
+
+  // Combine all sections
+  const csvContent = [
+    ...metadataRows,
+    summaryHeaders,
+    ...summaryRows,
+  ]
+    .map(row => row.map(field => `"${field}"`).join(','))
+    .join('\n');
+
+  // Generate filename
+  const dateStr = format(new Date(), 'yyyy-MM-dd');
+  const filename = `${stationName.replace(/\s+/g, '_')}_MUXPower_Analytics_${selectedPeriod}_${dateStr}.csv`;
+
+  downloadCSV(csvContent, filename);
 }

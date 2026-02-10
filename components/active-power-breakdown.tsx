@@ -5,8 +5,9 @@ import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, TrendingUp, Download } from "lucide-react";
+import { ArrowUp, ArrowDown, TrendingUp, Download, Calendar } from "lucide-react";
 import { exportActivePowerBreakdownToCSV } from "@/lib/station-csv-export";
+import { subDays, subWeeks, subMonths, subYears, format } from "date-fns";
 import type { ModbusConfig } from "@/lib/types/station";
 
 // Dynamically import ApexCharts to avoid SSR issues
@@ -126,6 +127,31 @@ export function ActivePowerBreakdown({
       case 'month': return 'Last 30 Days';
       case 'year': return 'Last 12 Months';
     }
+  };
+
+  const getDateRange = (period: TimePeriodKey) => {
+    const now = new Date();
+    let fromDate: Date;
+    
+    switch (period) {
+      case 'day':
+        fromDate = subDays(now, 1);
+        break;
+      case 'week':
+        fromDate = subWeeks(now, 1);
+        break;
+      case 'month':
+        fromDate = subMonths(now, 1);
+        break;
+      case 'year':
+        fromDate = subYears(now, 1);
+        break;
+    }
+    
+    return {
+      from: format(fromDate, 'MMM dd, yyyy HH:mm'),
+      to: format(now, 'MMM dd, yyyy HH:mm'),
+    };
   };
 
   const createChartOptions = (color: typeof ACTIVE_POWER_COLORS[0], chartData: ChartDataPoint[]): ApexCharts.ApexOptions => ({
@@ -261,33 +287,46 @@ export function ActivePowerBreakdown({
   return (
     <Card className="shadow-sm border-0 bg-linear-to-br from-background to-muted/20">
       <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg font-semibold">Active Power Breakdown</CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              Historical power data for each Active Power channel (1-6) - {getPeriodLabel(selectedPeriod)}
-            </CardDescription>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex-1">
+              <CardTitle className="text-lg font-semibold">Active Power Breakdown</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
+                Historical power data for each Active Power channel (1-6)
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tabs value={selectedPeriod} onValueChange={(v: string) => setSelectedPeriod(v as TimePeriodKey)}>
+                <TabsList className="grid grid-cols-4 w-[280px]">
+                  <TabsTrigger value="day">Day</TabsTrigger>
+                  <TabsTrigger value="week">Week</TabsTrigger>
+                  <TabsTrigger value="month">Month</TabsTrigger>
+                  <TabsTrigger value="year">Year</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {analytics && stationName && (
+                <Button
+                  onClick={handleExportCSV}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Tabs value={selectedPeriod} onValueChange={(v: string) => setSelectedPeriod(v as TimePeriodKey)}>
-              <TabsList className="grid grid-cols-4 w-[280px]">
-                <TabsTrigger value="day">Day</TabsTrigger>
-                <TabsTrigger value="week">Week</TabsTrigger>
-                <TabsTrigger value="month">Month</TabsTrigger>
-                <TabsTrigger value="year">Year</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {analytics && stationName && (
-              <Button
-                onClick={handleExportCSV}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
-            )}
+          
+          {/* Date Range Display */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted/30 rounded-lg border border-border/50">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium text-foreground">{getPeriodLabel(selectedPeriod)}:</span>
+              <span className="text-muted-foreground">
+                {getDateRange(selectedPeriod).from} → {getDateRange(selectedPeriod).to}
+              </span>
+            </div>
           </div>
         </div>
       </CardHeader>
