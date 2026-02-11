@@ -438,3 +438,212 @@ export function exportMuxPowerAnalyticsToCSV({
 
   downloadCSV(csvContent, filename);
 }
+
+
+// ============================================================================
+// TIME SERIES DATA EXPORTS (Separated Chart Data Only)
+// ============================================================================
+
+// Export Time Series Data for Historical Bar Chart
+interface TimeSeriesHistoricalExportOptions {
+  stationName: string;
+  stationId: string;
+  data: AggregatedDataPoint[];
+  dateRange: DateRange;
+  timePeriod: TimePeriod;
+}
+
+export function exportTimeSeriesHistoricalData({
+  stationName,
+  stationId,
+  data,
+  dateRange,
+  timePeriod,
+}: TimeSeriesHistoricalExportOptions) {
+  const periodLabel = timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1);
+  
+  // Metadata rows
+  const metadataRows = [
+    ['Report Type', 'Time Series - Historical Power Data'],
+    ['Station Name', stationName],
+    ['Station ID', stationId],
+    ['Export Date', format(new Date(), 'yyyy-MM-dd HH:mm:ss')],
+    ['Date Range', `${format(dateRange.from, 'yyyy-MM-dd')} to ${format(dateRange.to, 'yyyy-MM-dd')}`],
+    ['Time Period', periodLabel],
+    ['Total Data Points', data.length.toString()],
+    [], // Empty row separator
+  ];
+
+  // Time series headers
+  const headers = [
+    'Period Label',
+    'Timestamp',
+    'Total Active Power (W)',
+    'Total MUX Power (kWh)',
+  ];
+
+  // Time series data rows
+  const rows = data.map(point => [
+    point.label,
+    format(new Date(point.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+    point.activePowerSum.toFixed(2),
+    point.muxPowerSum.toFixed(2),
+  ]);
+
+  // Combine all sections
+  const csvContent = [
+    ...metadataRows,
+    headers,
+    ...rows,
+  ]
+    .map(row => row.map(field => `"${field}"`).join(','))
+    .join('\n');
+
+  // Generate filename
+  const dateStr = format(new Date(), 'yyyy-MM-dd');
+  const rangeStr = `${format(dateRange.from, 'yyyyMMdd')}-${format(dateRange.to, 'yyyyMMdd')}`;
+  const filename = `${stationName.replace(/\s+/g, '_')}_TimeSeries_Historical_${timePeriod}_${rangeStr}_${dateStr}.csv`;
+
+  downloadCSV(csvContent, filename);
+}
+
+// Export Time Series Data for Active Power Breakdown
+interface TimeSeriesActivePowerExportOptions {
+  stationName: string;
+  stationId: string;
+  analytics: ActivePowerChannelAnalytics[];
+  selectedPeriod: 'day' | 'week' | 'month' | 'year';
+  modbusConfig?: ModbusConfig | null;
+}
+
+export function exportTimeSeriesActivePowerData({
+  stationName,
+  stationId,
+  analytics,
+  selectedPeriod,
+  modbusConfig,
+}: TimeSeriesActivePowerExportOptions) {
+  const periodLabels = {
+    day: 'Last 24 Hours',
+    week: 'Last 7 Days',
+    month: 'Last 30 Days',
+    year: 'Last 12 Months',
+  };
+
+  // Metadata rows
+  const metadataRows = [
+    ['Report Type', 'Time Series - Active Power Breakdown'],
+    ['Station Name', stationName],
+    ['Station ID', stationId],
+    ['Export Date', format(new Date(), 'yyyy-MM-dd HH:mm:ss')],
+    ['Time Period', periodLabels[selectedPeriod]],
+    [], // Empty row separator
+  ];
+
+  // Build headers dynamically for all 6 channels
+  const channelHeaders = analytics.map(channel => {
+    const channelName = getModbusChannelName(channel.channel, modbusConfig);
+    return `Active ${channel.channel} - ${channelName} (W)`;
+  });
+
+  const headers = ['Period', ...channelHeaders];
+
+  // Get all unique period labels from the first channel
+  const firstChannel = analytics[0];
+  const periodLabelsData = firstChannel?.[selectedPeriod]?.chartData || [];
+
+  // Build rows with data from all channels
+  const rows = periodLabelsData.map((_, index) => {
+    const row = [periodLabelsData[index].label];
+    
+    // Add value from each channel for this period
+    analytics.forEach(channel => {
+      const chartData = channel[selectedPeriod]?.chartData || [];
+      const value = chartData[index]?.value || 0;
+      row.push(value.toFixed(2));
+    });
+    
+    return row;
+  });
+
+  // Combine all sections
+  const csvContent = [
+    ...metadataRows,
+    headers,
+    ...rows,
+  ]
+    .map(row => row.map(field => `"${field}"`).join(','))
+    .join('\n');
+
+  // Generate filename
+  const dateStr = format(new Date(), 'yyyy-MM-dd');
+  const filename = `${stationName.replace(/\s+/g, '_')}_TimeSeries_ActivePower_${selectedPeriod}_${dateStr}.csv`;
+
+  downloadCSV(csvContent, filename);
+}
+
+// Export Time Series Data for MUX Power Breakdown
+interface TimeSeriesMuxPowerExportOptions {
+  stationName: string;
+  stationId: string;
+  data: RealtimeDataPoint[];
+  modbusConfig?: ModbusConfig | null;
+}
+
+export function exportTimeSeriesMuxPowerData({
+  stationName,
+  stationId,
+  data,
+  modbusConfig,
+}: TimeSeriesMuxPowerExportOptions) {
+  // Metadata rows
+  const metadataRows = [
+    ['Report Type', 'Time Series - MUX Power Breakdown'],
+    ['Station Name', stationName],
+    ['Station ID', stationId],
+    ['Export Date', format(new Date(), 'yyyy-MM-dd HH:mm:ss')],
+    ['Data Points', data.length.toString()],
+    ['Time Range', data.length > 0 ? `${format(new Date(data[0].timestamp), 'yyyy-MM-dd HH:mm:ss')} to ${format(new Date(data[data.length - 1].timestamp), 'yyyy-MM-dd HH:mm:ss')}` : 'N/A'],
+    [], // Empty row separator
+  ];
+
+  // Time series headers
+  const headers = [
+    'Timestamp',
+    `MUX 1 - ${getModbusChannelName(1, modbusConfig)} (W)`,
+    `MUX 2 - ${getModbusChannelName(2, modbusConfig)} (W)`,
+    `MUX 3 - ${getModbusChannelName(3, modbusConfig)} (W)`,
+    `MUX 4 - ${getModbusChannelName(4, modbusConfig)} (W)`,
+    `MUX 5 - ${getModbusChannelName(5, modbusConfig)} (W)`,
+    `MUX 6 - ${getModbusChannelName(6, modbusConfig)} (W)`,
+    'Total MUX Power (W)',
+  ];
+
+  // Time series data rows
+  const rows = data.map(point => [
+    format(new Date(point.timestamp), 'yyyy-MM-dd HH:mm:ss'),
+    (point.muxPower1 !== null ? point.muxPower1.toFixed(2) : '0'),
+    (point.muxPower2 !== null ? point.muxPower2.toFixed(2) : '0'),
+    (point.muxPower3 !== null ? point.muxPower3.toFixed(2) : '0'),
+    (point.muxPower4 !== null ? point.muxPower4.toFixed(2) : '0'),
+    (point.muxPower5 !== null ? point.muxPower5.toFixed(2) : '0'),
+    (point.muxPower6 !== null ? point.muxPower6.toFixed(2) : '0'),
+    point.totalMuxPower.toFixed(2),
+  ]);
+
+  // Combine all sections
+  const csvContent = [
+    ...metadataRows,
+    headers,
+    ...rows,
+  ]
+    .map(row => row.map(field => `"${field}"`).join(','))
+    .join('\n');
+
+  // Generate filename
+  const dateStr = format(new Date(), 'yyyy-MM-dd');
+  const timeStr = format(new Date(), 'HHmmss');
+  const filename = `${stationName.replace(/\s+/g, '_')}_TimeSeries_MUXPower_${dateStr}_${timeStr}.csv`;
+
+  downloadCSV(csvContent, filename);
+}

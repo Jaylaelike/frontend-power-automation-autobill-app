@@ -4,8 +4,8 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { exportHistoricalDataToCSV } from "@/lib/station-csv-export";
+import { Download, LineChart } from "lucide-react";
+import { exportHistoricalDataToCSV, exportTimeSeriesHistoricalData } from "@/lib/station-csv-export";
 import type { AggregatedDataPoint, DateRange, TimePeriod, StationInfo } from "@/lib/types/station";
 
 // Dynamically import ApexCharts to avoid SSR issues
@@ -49,6 +49,18 @@ export function HistoricalBarChart({
     
     exportHistoricalDataToCSV({
       station,
+      data,
+      dateRange,
+      timePeriod,
+    });
+  };
+
+  const handleExportTimeSeries = () => {
+    if (!station || data.length === 0) return;
+    
+    exportTimeSeriesHistoricalData({
+      stationName: station.name,
+      stationId: station.id,
       data,
       dateRange,
       timePeriod,
@@ -219,15 +231,26 @@ export function HistoricalBarChart({
             </CardDescription>
           </div>
           {station && data.length > 0 && (
-            <Button
-              onClick={handleExportCSV}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleExportCSV}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Export Full
+              </Button>
+              <Button
+                onClick={handleExportTimeSeries}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <LineChart className="h-4 w-4" />
+                Time Series
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>

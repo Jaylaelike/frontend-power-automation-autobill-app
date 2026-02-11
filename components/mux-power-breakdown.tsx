@@ -4,8 +4,8 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, TrendingUp, Download, Calendar } from "lucide-react";
-import { exportMuxPowerAnalyticsToCSV } from "@/lib/station-csv-export";
+import { ArrowUp, ArrowDown, TrendingUp, Download, Calendar, LineChart } from "lucide-react";
+import { exportMuxPowerAnalyticsToCSV, exportTimeSeriesMuxPowerData } from "@/lib/station-csv-export";
 import { subDays, subWeeks, subMonths, subYears, format } from "date-fns";
 import type { RealtimeDataPoint, ModbusConfig } from "@/lib/types/station";
 
@@ -106,6 +106,17 @@ export function MuxPowerBreakdown({
       stationId,
       analytics,
       selectedPeriod,
+      modbusConfig,
+    });
+  };
+
+  const handleExportTimeSeries = () => {
+    if (!stationName || !stationId || data.length === 0) return;
+    
+    exportTimeSeriesMuxPowerData({
+      stationName,
+      stationId,
+      data,
       modbusConfig,
     });
   };
@@ -211,15 +222,27 @@ export function MuxPowerBreakdown({
                 </TabsList>
               </Tabs>
               {stationName && stationId && analytics && (
-                <Button
-                  onClick={handleExportCSV}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleExportCSV}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export Full
+                  </Button>
+                  <Button
+                    onClick={handleExportTimeSeries}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    disabled={data.length === 0}
+                  >
+                    <LineChart className="h-4 w-4" />
+                    Time Series
+                  </Button>
+                </div>
               )}
             </div>
           </div>

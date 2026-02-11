@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, TrendingUp, Download, Calendar } from "lucide-react";
-import { exportActivePowerBreakdownToCSV } from "@/lib/station-csv-export";
+import { ArrowUp, ArrowDown, TrendingUp, Download, Calendar, LineChart } from "lucide-react";
+import { exportActivePowerBreakdownToCSV, exportTimeSeriesActivePowerData } from "@/lib/station-csv-export";
 import { subDays, subWeeks, subMonths, subYears, format } from "date-fns";
 import type { ModbusConfig } from "@/lib/types/station";
 
@@ -100,6 +100,18 @@ export function ActivePowerBreakdown({
     if (!analytics || !stationName) return;
     
     exportActivePowerBreakdownToCSV({
+      stationName,
+      stationId,
+      analytics,
+      selectedPeriod,
+      modbusConfig,
+    });
+  };
+
+  const handleExportTimeSeries = () => {
+    if (!analytics || !stationName) return;
+    
+    exportTimeSeriesActivePowerData({
       stationName,
       stationId,
       analytics,
@@ -305,15 +317,26 @@ export function ActivePowerBreakdown({
                 </TabsList>
               </Tabs>
               {analytics && stationName && (
-                <Button
-                  onClick={handleExportCSV}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleExportCSV}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export Full
+                  </Button>
+                  <Button
+                    onClick={handleExportTimeSeries}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <LineChart className="h-4 w-4" />
+                    Time Series
+                  </Button>
+                </div>
               )}
             </div>
           </div>
