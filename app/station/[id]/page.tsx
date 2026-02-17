@@ -12,6 +12,7 @@ import { MuxPowerBreakdown } from "@/components/mux-power-breakdown";
 import { ActivePowerBreakdown } from "@/components/active-power-breakdown";
 import { PageLayout } from "@/components/page-layout";
 import { StationReportActions } from "@/components/station-report-actions";
+import { StationBillingCard } from "@/components/station-billing-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,12 +21,12 @@ import { AlertCircle, Download } from "lucide-react";
 import { subDays } from "date-fns";
 import { exportStationDataToCSV } from "@/lib/station-csv-export";
 import { useToast } from "@/hooks/use-toast";
-import type { 
-  StationDetailResponse, 
-  HistoricalDataResponse, 
+import type {
+  StationDetailResponse,
+  HistoricalDataResponse,
   RealtimeDataResponse,
   DateRange,
-  TimePeriod 
+  TimePeriod
 } from "@/lib/types/station";
 
 export default function StationDetailPage() {
@@ -189,6 +190,8 @@ export default function StationDetailPage() {
         {/* Report & Email Actions */}
         <StationReportActions station={stationData.station} />
 
+        {/* Per-Station Billing */}
+        <StationBillingCard stationId={stationId} stationName={stationData.station.name} />
         {/* Date Controls */}
         <Card>
           <CardHeader>

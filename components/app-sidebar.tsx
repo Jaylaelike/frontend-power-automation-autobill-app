@@ -16,6 +16,7 @@ import {
   Shield,
   HelpCircle,
   ChevronRight,
+  Calculator,
 } from "lucide-react";
 
 import {
@@ -38,6 +39,12 @@ const mainNavigation = [
     href: "/",
     icon: Home,
     description: "Real-time power monitoring"
+  },
+  {
+    name: "Billing",
+    href: "/billing",
+    icon: Calculator,
+    description: "คำนวณค่าไฟฟ้า"
   },
   {
     name: "Email Reports",
@@ -138,7 +145,7 @@ export function AppSidebar() {
               {mainNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
-                
+
                 return (
                   <SidebarMenuItem key={item.name}>
                     <SidebarMenuButton
@@ -174,7 +181,7 @@ export function AppSidebar() {
               {dataNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
-                
+
                 return (
                   <SidebarMenuItem key={item.name}>
                     <SidebarMenuButton
@@ -210,7 +217,7 @@ export function AppSidebar() {
               {systemNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
-                
+
                 return (
                   <SidebarMenuItem key={item.name}>
                     <SidebarMenuButton
