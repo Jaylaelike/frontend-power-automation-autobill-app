@@ -74,13 +74,16 @@ export function StationBillingCard({ stationId, stationName }: StationBillingCar
     const totals = data?.totals;
     const isSpecialTariff = channels.length > 0 && channels[0].tariff > DEFAULT_BILLING_CONFIG.defaultTariff;
 
-    const formatDate = (isoString: string) => {
-        const d = new Date(isoString);
-        return d.toLocaleDateString("th-TH", {
-            day: "numeric",
-            month: "short",
-            year: "2-digit",
-        });
+    const formatDateTime = (isoString: string) => {
+        if (!isoString) return "-";
+        const date = new Date(isoString);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        return `${day}/${month}/${year} , ${hours}:${minutes}:${seconds}`;
     };
 
     return (
@@ -187,14 +190,14 @@ export function StationBillingCard({ stationId, stationName }: StationBillingCar
                                                 <Calendar className="h-2.5 w-2.5" /> PMR
                                             </p>
                                             <p className="font-mono font-medium">{formatKwh(ch.previousMeterReading)}</p>
-                                            <p className="text-muted-foreground text-[9px]">{formatDate(ch.previousReadDate)}</p>
+                                            <p className="text-muted-foreground text-[9px]">{formatDateTime(ch.previousReadDate)}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground flex items-center gap-0.5">
                                                 <Calendar className="h-2.5 w-2.5" /> LMR
                                             </p>
                                             <p className="font-mono font-medium">{formatKwh(ch.latestMeterReading)}</p>
-                                            <p className="text-muted-foreground text-[9px]">{formatDate(ch.latestReadDate)}</p>
+                                            <p className="text-muted-foreground text-[9px]">{formatDateTime(ch.latestReadDate)}</p>
                                         </div>
                                         <div>
                                             <p className="text-muted-foreground flex items-center gap-0.5">

@@ -85,6 +85,20 @@ const TABLE_FONT_SIZE = 8;
 const FOOTER_FONT_SIZE = 9;
 const REMARK_FONT_SIZE = 8;
 
+// ─── Number & Date Formatting ───────────────────────────────────────
+
+function formatDateTime(isoString: string): string {
+    if (!isoString) return "-";
+    const date = new Date(isoString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${day}/${month}/${year} , ${hours}:${minutes}:${seconds}`;
+}
+
 // ─── Main Export Function ───────────────────────────────────────────
 
 export async function generateBillingPDF(summary: BillingSummary): Promise<ArrayBuffer> {
@@ -109,10 +123,10 @@ export async function generateBillingPDF(summary: BillingSummary): Promise<Array
     const tableBody = summary.entries.map((e) => [
         String(e.index),
         e.stationNameThai,
-        e.previousReadDate,
+        formatDateTime(e.previousReadDate),
         formatNumber(e.previousMeterReading, 3),
         "KWH",
-        e.latestReadDate,
+        formatDateTime(e.latestReadDate),
         formatNumber(e.latestMeterReading, 3),
         "KWH",
         formatNumber(e.consumption, 3),
@@ -121,23 +135,6 @@ export async function generateBillingPDF(summary: BillingSummary): Promise<Array
         formatNumber(e.billAmount, 2),
         "บาท",
     ]);
-
-    // Column definitions for autoTable
-    const tableColumns = [
-        { header: "ลำดับ", dataKey: "0" },
-        { header: "สถานี", dataKey: "1" },
-        { header: "ว/ด/ป ที่อ่าน", dataKey: "2" },
-        { header: "ค่ากระแสไฟฟ้าที่จด", dataKey: "3" },
-        { header: "", dataKey: "4" },
-        { header: "ว/ด/ป ที่อ่าน", dataKey: "5" },
-        { header: "ค่ากระแสไฟฟ้าที่จด", dataKey: "6" },
-        { header: "", dataKey: "7" },
-        { header: "หน่วย KWH", dataKey: "8" },
-        { header: "", dataKey: "9" },
-        { header: "ค่าพลังงาน KWH ละ", dataKey: "10" },
-        { header: "คิดเป็นจำนวนเงิน", dataKey: "11" },
-        { header: "", dataKey: "12" },
-    ];
 
     // Merged headers (two-row header)
     const head = [
@@ -170,8 +167,8 @@ export async function generateBillingPDF(summary: BillingSummary): Promise<Array
     (doc as any).autoTable({
         head,
         body: tableBody,
-        startY: 0, // will be set by didDrawPage
-        margin: { left: MARGIN_LEFT, right: MARGIN_RIGHT, top: 38, bottom: 15 },
+        startY: 50, // Explicit start Y below the headers
+        margin: { left: MARGIN_LEFT, right: MARGIN_RIGHT, top: 50, bottom: 15 },
         styles: {
             fontSize: TABLE_FONT_SIZE,
             cellPadding: 1.5,

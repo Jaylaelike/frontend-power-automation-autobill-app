@@ -17,6 +17,7 @@ import {
   HelpCircle,
   ChevronRight,
   Calculator,
+  ClipboardList,
 } from "lucide-react";
 
 import {
@@ -45,6 +46,12 @@ const mainNavigation = [
     href: "/billing",
     icon: Calculator,
     description: "คำนวณค่าไฟฟ้า"
+  },
+  {
+    name: "Billing Tester",
+    href: "/billing/test",
+    icon: ClipboardList,
+    description: "Manual verification tool"
   },
   {
     name: "Email Reports",

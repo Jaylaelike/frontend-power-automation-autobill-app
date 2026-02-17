@@ -77,3 +77,29 @@ export interface BillingCalculateResponse {
     summary: BillingSummary;
     generatedAt: string;
 }
+
+export interface ChannelBilling {
+    muxChannel: number;
+    customerName: string;
+    previousReadDate: string;
+    previousMeterReading: number;
+    latestReadDate: string;
+    latestMeterReading: number;
+    consumption: number;
+    tariff: number;
+    billAmount: number;
+}
+
+export interface StationBillingResponse {
+    stationName: string;
+    period: BillingPeriod;
+    channels: ChannelBilling[];
+    totals: {
+        subtotal: number;
+        vatRate: number;
+        vatAmount: number;
+        netTotal: number;
+        totalConsumption: number;
+    };
+    message?: string;
+}

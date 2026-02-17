@@ -53,7 +53,18 @@ import {
 } from "@/lib/billing-calculator";
 import type { BillingEntry, BillingSummary, BillingPeriod } from "@/lib/types/billing";
 
-
+// Helper to format date as DD/MM/YYYY , HH:mm:ss
+const formatDateTime = (isoString: string) => {
+    if (!isoString) return "-";
+    const date = new Date(isoString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${day}/${month}/${year} , ${hours}:${minutes}:${seconds}`;
+};
 
 export function BillingCalculatePage() {
     const now = new Date();
@@ -170,15 +181,26 @@ export function BillingCalculatePage() {
     };
 
     // PDF Export
+
     const handleExportPDF = async () => {
         setIsPdfLoading(true);
         try {
-            const pdfBytes = await generateBillingPDF(displayData);
+            // Create a summary object based on filtered data
+            const filteredSummary: BillingSummary = {
+                ...displayData,
+                entries: filteredEntries, // Use filtered entries
+                subtotal: filteredSubtotal,
+                vatAmount: filteredVat,
+                netTotal: filteredNet,
+                customerName: selectedCustomer || displayData.customerName, // Use selected customer if filtered
+            };
+
+            const pdfBytes = await generateBillingPDF(filteredSummary);
             const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `billing_${displayData.period.month}_${displayData.period.year}.pdf`;
+            a.download = `billing_${displayData.period.month}_${displayData.period.year}${selectedCustomer ? `_${selectedCustomer}` : ''}.pdf`;
             a.click();
             URL.revokeObjectURL(url);
         } catch (err) {
@@ -242,10 +264,12 @@ export function BillingCalculatePage() {
                 },
                 size: 80,
             },
+
+            // ... columns definition
             {
                 accessorKey: "previousReadDate",
                 header: () => <div className="text-center font-semibold text-xs">ว/ด/ป ครั้งก่อน</div>,
-                cell: ({ row }) => <div className="text-center text-xs text-muted-foreground">{row.getValue("previousReadDate")}</div>,
+                cell: ({ row }) => <div className="text-center text-xs text-muted-foreground">{formatDateTime(row.getValue("previousReadDate"))}</div>,
             },
             {
                 accessorKey: "previousMeterReading",
@@ -263,7 +287,7 @@ export function BillingCalculatePage() {
             {
                 accessorKey: "latestReadDate",
                 header: () => <div className="text-center font-semibold text-xs">ว/ด/ป ครั้งหลังสุด</div>,
-                cell: ({ row }) => <div className="text-center text-xs text-muted-foreground">{row.getValue("latestReadDate")}</div>,
+                cell: ({ row }) => <div className="text-center text-xs text-muted-foreground">{formatDateTime(row.getValue("latestReadDate"))}</div>,
             },
             {
                 accessorKey: "latestMeterReading",
@@ -538,16 +562,7 @@ export function BillingCalculatePage() {
                 </Card>
             </div>
 
-            {/* Billing Period Title */}
-            <div className="text-center space-y-1">
-                <h2 className="text-lg font-semibold text-foreground">
-                    {displayData.customerName}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    {formatBillingPeriod(displayData.period)}
-                </p>
 
-            </div>
 
             {/* Customer Filter Tabs */}
             {uniqueCustomers.length > 0 && (
@@ -672,17 +687,7 @@ export function BillingCalculatePage() {
                 )}
             </Card>
 
-            {/* Remarks */}
-            <Card className="border-border/50 shadow-sm">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-muted-foreground">หมายเหตุ</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 text-sm text-muted-foreground">
-                    <p>1. อัตราค่าไฟฟ้า หน่วย (KWH) ละ {defaultTariff.toFixed(2)} บาท ยกเว้นสถานีเกาะพะงัน (7.36 บาท)</p>
-                    <p>2. เนื่องจากค่า FT ประจำเดือน พฤษภาคม - สิงหาคม 2568 หน่วยละ 0.1972 บาท ซึ่งต่ำกว่า 0.2477 บาท จึงใช้อัตราค่าใช้บริการไฟฟ้า 6.5 บาทต่อหน่วย</p>
-                    <p>3. สูตรการคำนวณ: kWh = LMR − PMR, BILL = kWh × ET, PBILL = kWh × (ET − UET)</p>
-                </CardContent>
-            </Card>
+
 
             {/* Customer/MUX Mapping Reference */}
             <Card className="border-border/50 shadow-sm">

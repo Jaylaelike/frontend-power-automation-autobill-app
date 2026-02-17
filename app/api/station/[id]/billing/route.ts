@@ -118,8 +118,8 @@ export async function GET(
 
             if (!earliestReading || !latestReading) continue;
 
-            const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0) / 1000;
-            const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0) / 1000;
+            const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0);
+            const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0);
 
             if (pmr === lmr) continue;
 

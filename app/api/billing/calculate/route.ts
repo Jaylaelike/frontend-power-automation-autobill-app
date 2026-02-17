@@ -12,19 +12,6 @@ import type { BillingEntry, BillingPeriod } from "@/lib/types/billing";
 
 const prisma = new PrismaClient();
 
-// Target stations for billing calculation
-// Only these stations will be included in the billing report
-const BILLING_STATION_NAMES = [
-    "สิงห์บุรี",
-    "เกาะพะงัน",
-    "ภูเก็ต",
-    "สุโขทัย",
-    "ขอนแก่น",
-    "เลย",
-    "พะโต๊ะ",
-    "สมุทรสงคราม",
-];
-
 // MUX power field keys for iterating channels 1-6
 const MUX_POWER_FIELDS = [
     'muxPower1', 'muxPower2', 'muxPower3',
@@ -55,11 +42,8 @@ export async function POST(request: Request) {
         const startOfMonth = new Date(gregorianYear, month - 1, 1);
         const endOfMonth = new Date(gregorianYear, month, 0, 23, 59, 59, 999);
 
-        // Fetch only the target stations with their modbus config
+        // Fetch all stations with their modbus config
         const stations = await prisma.station.findMany({
-            where: {
-                name: { in: BILLING_STATION_NAMES },
-            },
             include: {
                 modbusConfig: true,
             },
@@ -143,8 +127,8 @@ export async function POST(request: Request) {
                 if (!earliestReading || !latestReading) continue;
 
                 // muxPower values are stored in Wh — convert to kWh
-                const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0) / 1000;
-                const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0) / 1000;
+                const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0);
+                const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0);
 
                 // Skip if readings are identical (no consumption)
                 if (pmr === lmr) continue;

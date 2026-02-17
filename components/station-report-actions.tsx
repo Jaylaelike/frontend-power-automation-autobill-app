@@ -20,6 +20,8 @@ import { FontLoader } from '@/lib/font-loader';
 import { Mail, FileText, Send, Download, Search, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { StationInfo } from '@/lib/types/station';
+import { StationBillingResponse } from '@/lib/types/billing';
+import { gregorianToBe } from '@/lib/billing-calculator';
 
 interface User {
   id: number;
@@ -95,6 +97,23 @@ export function StationReportActions({ station }: StationReportActionsProps) {
     };
   };
 
+  // Fetch billing data for report
+  const fetchBillingData = async (): Promise<StationBillingResponse | undefined> => {
+    try {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = gregorianToBe(now.getFullYear());
+
+      const response = await fetch(`/api/station/${station.id}/billing?month=${month}&year=${year}`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.warn('Failed to fetch billing data for report:', error);
+    }
+    return undefined;
+  };
+
   const handleUserSelection = (userId: string, checked: boolean) => {
     if (checked) {
       setSelectedUsers([...selectedUsers, userId]);
@@ -146,7 +165,8 @@ export function StationReportActions({ station }: StationReportActionsProps) {
         await FontLoader.preloadFonts();
       }
 
-      const pdfBytes = await generateStationPDF(stationData);
+      const billingData = await fetchBillingData();
+      const pdfBytes = await generateStationPDF(stationData, billingData);
       const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -205,7 +225,8 @@ export function StationReportActions({ station }: StationReportActionsProps) {
         await FontLoader.preloadFonts();
       }
 
-      const pdfBytes = await generateStationPDF(stationData);
+      const billingData = await fetchBillingData();
+      const pdfBytes = await generateStationPDF(stationData, billingData);
 
       // Convert PDF to base64
       let pdfBase64: string;
