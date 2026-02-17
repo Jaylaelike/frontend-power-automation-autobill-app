@@ -118,8 +118,12 @@ export async function GET(
 
             if (!earliestReading || !latestReading) continue;
 
-            const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0);
-            const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0);
+            // Check if station uses Watts (scene is null) -> convert to kWh
+            const isWattUnit = station.scene === null;
+            const divisor = isWattUnit ? 1000 : 1;
+
+            const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0) / divisor;
+            const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0) / divisor;
 
             if (pmr === lmr) continue;
 

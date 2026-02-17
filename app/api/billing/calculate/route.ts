@@ -44,7 +44,10 @@ export async function POST(request: Request) {
 
         // Fetch all stations with their modbus config
         const stations = await prisma.station.findMany({
-            include: {
+            select: {
+                id: true,
+                name: true,
+                scene: true,
                 modbusConfig: true,
             },
             orderBy: { name: 'asc' },
@@ -126,9 +129,13 @@ export async function POST(request: Request) {
 
                 if (!earliestReading || !latestReading) continue;
 
-                // muxPower values are stored in Wh — convert to kWh
-                const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0);
-                const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0);
+                // Check if station uses Watts (scene is null) -> convert to kWh
+                const isWattUnit = station.scene === null;
+                const divisor = isWattUnit ? 1000 : 1;
+
+                // muxPower values are stored in Wh (if scene=null) or kWh (otherwise)
+                const pmr = ((earliestReading as Record<string, unknown>)[muxField] as number || 0) / divisor;
+                const lmr = ((latestReading as Record<string, unknown>)[muxField] as number || 0) / divisor;
 
                 // Skip if readings are identical (no consumption)
                 if (pmr === lmr) continue;
